@@ -334,10 +334,12 @@ const authenticateRequest = (req: AuthRequest, res: Response, next: NextFunction
         return next();
     }
 
-    // Extract API key from x-api-key header
-    const apiKeyHeader = req.headers['x-api-key'];
+    // Extract API key from multiple possible header names
+    const apiKeyHeader = req.headers['x-api-key'] || 
+                        req.headers['apikey'] || 
+                        req.headers['api_key'];
     const apiKey = Array.isArray(apiKeyHeader) ? apiKeyHeader[0] : apiKeyHeader;
-    
+
     if (!apiKey) {
         return res.status(401).json({
             jsonrpc: '2.0',
@@ -345,7 +347,7 @@ const authenticateRequest = (req: AuthRequest, res: Response, next: NextFunction
                 code: -32001,
                 message: 'Authentication required',
                 data: {
-                    details: 'Missing x-api-key header. Use: x-api-key: <your-api-key>'
+                    details: 'Missing API key header. Use one of: x-api-key, apikey, or api_key'
                 }
             }
         });
@@ -378,7 +380,7 @@ const app = express();
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-api-key'],
+    allowedHeaders: ['Content-Type', 'x-api-key', 'apikey', 'api_key'],
     credentials: true,
     exposedHeaders: ['X-Auth-Status']
 }));
@@ -408,7 +410,8 @@ app.get('/', (req: Request, res: Response) => {
         authentication: {
             enabled: AUTH_ENABLED,
             required: AUTH_ENABLED,
-            header_format: 'x-api-key: <your-api-key>'
+            header_format: 'x-api-key: <your-api-key> (or apikey, api_key)'
+
         },
         endpoints: {
             health: '/health',
